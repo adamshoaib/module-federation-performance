@@ -1,32 +1,52 @@
 import React, { Suspense, useState, useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
-import { TimeTracker } from "./TimeTracker.jsx";
 
-const Details = React.lazy(() =>
-  TimeTracker(() => import("Description/Details"), "Description/Details")
+const Details = React.lazy(
+  () => import("Description/Details"),
+  "Description/Details"
 );
 
-const Contents = React.lazy(() =>
-  TimeTracker(() => import("pdp/contents"), "pdp/contents")
-);
+const Contents = React.lazy(() => import("pdp/contents"), "pdp/contents");
 
 import { useMeasurePerformance } from "./useMeasurePerformance.jsx";
 
 export default function Main() {
-  const {
-    startLCPObservation,
-    stopLCPObservation,
-    startModuleLoadObservation,
-    stopModuleLoadObservation,
-  } = useMeasurePerformance();
+  const { startModuleLoadObservation, stopModuleLoadObservation } =
+    useMeasurePerformance();
+
+  // useEffect(() => {
+  //   startModuleLoadObservation();
+  //   return () => {
+  //     stopModuleLoadObservation();
+  //   };
+  // }, []);
 
   useEffect(() => {
-    startLCPObservation();
-    startModuleLoadObservation();
+    const start = performance.now();
+
+    const handleDOMContentLoaded = () => {
+      console.log("Result Start Time - Main:", start);
+      window.dispatchEvent(new CustomEvent(`home-dom-content-loaded`));
+    };
+
+    const handlePdpDomContentLoaded = () => {
+      const end = performance.now();
+      console.log("Result total time of Home:", end - start);
+    };
+
+    window.addEventListener("load", handleDOMContentLoaded);
+    window.addEventListener(
+      "home-dom-content-loaded",
+      handlePdpDomContentLoaded
+    );
+
     return () => {
-      stopLCPObservation();
-      stopModuleLoadObservation();
+      window.removeEventListener("load", handleDOMContentLoaded);
+      window.removeEventListener(
+        "home-dom-content-loaded",
+        handlePdpDomContentLoaded
+      );
     };
   }, []);
 
@@ -39,15 +59,16 @@ export default function Main() {
         <Suspense>
           <Details />
         </Suspense>
+        <Suspense>
+          <Contents elementtiming="contents" />
+        </Suspense>
 
         <img
           elementtiming="big-image"
           src="https://googlechrome.github.io/samples/picture-element/images/kitten-large.png"
         />
         <p elementtiming="para">Hello world from p tag</p>
-        <Suspense>
-          <Contents elementtiming="contents" />
-        </Suspense>
+
         <Footer elementtiming="footer" />
       </div>
     </div>
